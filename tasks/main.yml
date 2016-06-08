@@ -18,9 +18,17 @@
 #    tags:
 #     - keys
 
+  - name: Install Python seLinux
+    yum: name=libselinux-python state=installed
+
+  - name: Add motd
+    template: src=motd.j2 dest=/etc/motd
+    tags: motd
+    when: configure_motd
+
   - name: Install EPEL Repo
     yum: name={{ epel_rpm }} state=installed
-    when: configure_epel_repo 
+    when: configure_epel_repo
     tags:
      - epelrepo
 
@@ -30,18 +38,27 @@
     tags:
      - ol6repo
 
+  - name: Get OL6 GPG file (pulic-yum)
+    get_url: dest={{ rpm_gpg_keys_dir }}/{{ ol6_rmp_gpg_key }} url=http://public-yum.oracle.com/{{ ol6_rmp_gpg_key }}
+    when: configure_public_yum_repo
+    tags:
+      - ol6repo
+
+  - name: Import OL6 GPG file (public-yum)
+    shell: rpm --import {{ rpm_gpg_keys_dir }}/{{ ol6_rmp_gpg_key }}
+    when: configure_public_yum_repo
+    tags:
+      - ol6repo
+
   - name: Install common packages
     yum: name={{ item }} state=installed
-    with_items: common_packages 
+    with_items: common_packages
     when: install_os_packages
     tags:
       - commonpackages
-   
+
+
   - name: Start and enable NTP
     service: name=ntpd  state=started  enabled=yes
     when: configure_ntp
 
-  - name: Add motd
-    template: src=motd.j2 dest=/etc/motd 
-    tags: motd
-    when: configure_motd
